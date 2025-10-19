@@ -54,6 +54,14 @@ export async function onRequest(context) {
       return await addExpense(request, env, corsHeaders);
     }
     
+    if (path === '/savings/delete' && request.method === 'POST') {
+      return await deleteSaving(request, env, corsHeaders);
+    }
+    
+    if (path === '/entertainment/delete' && request.method === 'POST') {
+      return await deleteExpense(request, env, corsHeaders);
+    }
+    
     if (path === '/rates/update' && request.method === 'GET') {
       return await updateExchangeRates(env, corsHeaders);
     }
@@ -114,7 +122,7 @@ async function getData(env, corsHeaders) {
   ).first();
   
   const savingsRecords = await db.prepare(
-    'SELECT id, amount, date FROM savings_records ORDER BY date DESC, id DESC LIMIT 5'
+    'SELECT id, amount, date, rate_cad, rate_cny FROM savings_records ORDER BY date DESC, id DESC LIMIT 5'
   ).all();
   
   // 获取娱乐消费数据
@@ -123,17 +131,19 @@ async function getData(env, corsHeaders) {
   ).first();
   
   const entertainmentRecords = await db.prepare(
-    'SELECT id, amount, currency, note, date FROM entertainment_records ORDER BY date DESC, id DESC LIMIT 20'
+    'SELECT id, amount, currency, note, date, rate_cad, rate_cny FROM entertainment_records ORDER BY date DESC, id DESC LIMIT 20'
   ).all();
   
-  // 获取汇率
+  // 获取汇率及更新时间
   const rates = await db.prepare(
-    'SELECT currency, rate FROM exchange_rates WHERE currency IN ("CAD", "CNY")'
+    'SELECT currency, rate, updated_at FROM exchange_rates WHERE currency IN ("CAD", "CNY")'
   ).all();
   
   const ratesMap = {};
+  let updatedAt = null;
   rates.results.forEach(r => {
     ratesMap[r.currency] = r.rate;
+    if (r.updated_at) updatedAt = r.updated_at;
   });
   
   return jsonResponse({
@@ -147,7 +157,11 @@ async function getData(env, corsHeaders) {
       balance: entertainmentBalance?.balance || 0,
       records: entertainmentRecords.results || []
     },
-    rates: ratesMap
+    rates: {
+      CAD: ratesMap.CAD || 1.36,
+      CNY: ratesMap.CNY || 7.12,
+      updatedAt: updatedAt
+    }
   }, 200, corsHeaders);
 }
 
@@ -158,9 +172,17 @@ async function addSaving(request, env, corsHeaders) {
   
   const date = new Date().toISOString().split('T')[0];
   
+  // 获取当前汇率
+  const rates = await db.prepare(
+    'SELECT currency, rate FROM exchange_rates WHERE currency IN ("CAD", "CNY")'
+  ).all();
+  
+  const rateCAD = rates.results.find(r => r.currency === 'CAD')?.rate || 1.36;
+  const rateCNY = rates.results.find(r => r.currency === 'CNY')?.rate || 7.12;
+  
   await db.prepare(
-    'INSERT INTO savings_records (amount, date) VALUES (?, ?)'
-  ).bind(amount, date).run();
+    'INSERT INTO savings_records (amount, date, rate_cad, rate_cny) VALUES (?, ?, ?, ?)'
+  ).bind(amount, date, rateCAD, rateCNY).run();
   
   return jsonResponse({ success: true }, 200, corsHeaders);
 }
@@ -196,6 +218,14 @@ async function rechargeEntertainment(request, env, corsHeaders) {
   
   const date = new Date().toISOString().split('T')[0];
   
+  // 获取当前汇率
+  const rates = await db.prepare(
+    'SELECT currency, rate FROM exchange_rates WHERE currency IN ("CAD", "CNY")'
+  ).all();
+  
+  const rateCAD = rates.results.find(r => r.currency === 'CAD')?.rate || 1.36;
+  const rateCNY = rates.results.find(r => r.currency === 'CNY')?.rate || 7.12;
+  
   // 更新余额
   await db.prepare(
     'UPDATE entertainment_balance SET balance = balance + ? WHERE id = 1'
@@ -203,8 +233,8 @@ async function rechargeEntertainment(request, env, corsHeaders) {
   
   // 添加记录
   await db.prepare(
-    'INSERT INTO entertainment_records (amount, currency, note, date) VALUES (?, ?, ?, ?)'
-  ).bind(amount, 'USD', '充值', date).run();
+    'INSERT INTO entertainment_records (amount, currency, note, date, rate_cad, rate_cny) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(amount, 'USD', '充值', date, rateCAD, rateCNY).run();
   
   return jsonResponse({ success: true }, 200, corsHeaders);
 }
@@ -217,13 +247,16 @@ async function addExpense(request, env, corsHeaders) {
   const date = new Date().toISOString().split('T')[0];
   
   // 获取汇率
+  const rates = await db.prepare(
+    'SELECT currency, rate FROM exchange_rates WHERE currency IN ("CAD", "CNY")'
+  ).all();
+  
+  const rateCAD = rates.results.find(r => r.currency === 'CAD')?.rate || 1.36;
+  const rateCNY = rates.results.find(r => r.currency === 'CNY')?.rate || 7.12;
+  
   let rate = 1;
-  if (currency !== 'USD') {
-    const rateData = await db.prepare(
-      'SELECT rate FROM exchange_rates WHERE currency = ?'
-    ).bind(currency).first();
-    rate = rateData?.rate || 1;
-  }
+  if (currency === 'CAD') rate = rateCAD;
+  else if (currency === 'CNY') rate = rateCNY;
   
   // 计算 USD 金额
   const usdAmount = amount / rate;
@@ -235,8 +268,74 @@ async function addExpense(request, env, corsHeaders) {
   
   // 添加记录
   await db.prepare(
-    'INSERT INTO entertainment_records (amount, currency, note, date, exchange_rate) VALUES (?, ?, ?, ?, ?)'
-  ).bind(-amount, currency, note || '消费', date, rate).run();
+    'INSERT INTO entertainment_records (amount, currency, note, date, rate_cad, rate_cny) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(-amount, currency, note || '消费', date, rateCAD, rateCNY).run();
+  
+  return jsonResponse({ success: true }, 200, corsHeaders);
+}
+
+// 删除储蓄记录
+async function deleteSaving(request, env, corsHeaders) {
+  const { id } = await request.json();
+  const db = env.DB;
+  
+  // 获取记录金额
+  const record = await db.prepare(
+    'SELECT amount FROM savings_records WHERE id = ?'
+  ).bind(id).first();
+  
+  if (!record) {
+    return jsonResponse({ error: 'Record not found' }, 404, corsHeaders);
+  }
+  
+  // 删除记录
+  await db.prepare(
+    'DELETE FROM savings_records WHERE id = ?'
+  ).bind(id).run();
+  
+  return jsonResponse({ success: true, amount: record.amount }, 200, corsHeaders);
+}
+
+// 删除娱乐消费记录
+async function deleteExpense(request, env, corsHeaders) {
+  const { id } = await request.json();
+  const db = env.DB;
+  
+  // 获取记录信息
+  const record = await db.prepare(
+    'SELECT amount, currency, rate_cad, rate_cny FROM entertainment_records WHERE id = ?'
+  ).bind(id).first();
+  
+  if (!record) {
+    return jsonResponse({ error: 'Record not found' }, 404, corsHeaders);
+  }
+  
+  // 计算USD金额以恢复余额
+  let rate = 1;
+  if (record.currency === 'CAD' && record.rate_cad) {
+    rate = record.rate_cad;
+  } else if (record.currency === 'CNY' && record.rate_cny) {
+    rate = record.rate_cny;
+  }
+  
+  const usdAmount = Math.abs(record.amount) / rate;
+  
+  // 如果是消费（负数），删除后应增加余额
+  if (record.amount < 0) {
+    await db.prepare(
+      'UPDATE entertainment_balance SET balance = balance + ? WHERE id = 1'
+    ).bind(usdAmount).run();
+  } else {
+    // 如果是充值（正数），删除后应减少余额
+    await db.prepare(
+      'UPDATE entertainment_balance SET balance = balance - ? WHERE id = 1'
+    ).bind(record.amount).run();
+  }
+  
+  // 删除记录
+  await db.prepare(
+    'DELETE FROM entertainment_records WHERE id = ?'
+  ).bind(id).run();
   
   return jsonResponse({ success: true }, 200, corsHeaders);
 }
