@@ -7,11 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
         .currency-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
         .usd { background: #dbeafe; color: #1e40af; }
         .cad { background: #fce7f3; color: #be123c; }
         .cny { background: #fef3c7; color: #b45309; }
+        .record-item:hover .delete-btn { opacity: 1; }
+        .delete-btn { opacity: 0; transition: opacity 0.2s; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -42,150 +43,172 @@
     <div id="mainApp" class="hidden min-h-screen pb-20">
         <!-- 头部 -->
         <div class="bg-white shadow-sm border-b">
-            <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
                 <h1 class="text-xl font-bold text-gray-800">💰 财务管理</h1>
-                <button id="logoutBtn" class="text-gray-600 hover:text-gray-800 flex items-center gap-2">
-                    <span>退出</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
-                </button>
+                <div class="flex items-center gap-4">
+                    <button id="exportBtn" class="text-gray-600 hover:text-gray-800 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span>导出数据</span>
+                    </button>
+                    <button id="logoutBtn" class="text-gray-600 hover:text-gray-800 flex items-center gap-2">
+                        <span>退出</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- 标签切换 -->
-        <div class="bg-white border-b">
-            <div class="max-w-4xl mx-auto px-4 flex">
-                <button class="tab-btn tab-active py-4 px-6 font-semibold transition" data-tab="savings">💎 储蓄追踪</button>
-                <button class="tab-btn py-4 px-6 font-semibold text-gray-500 transition" data-tab="entertainment">🎉 娱乐消费</button>
+        <!-- 汇率显示 -->
+        <div class="bg-blue-50 border-b border-blue-100">
+            <div class="max-w-6xl mx-auto px-4 py-3">
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center gap-6">
+                        <span class="text-gray-600">💱 实时汇率</span>
+                        <span class="font-semibold">1 USD = <span id="rateCAD">1.36</span> CAD</span>
+                        <span class="font-semibold">1 USD = <span id="rateCNY">7.12</span> CNY</span>
+                    </div>
+                    <div class="text-gray-500 text-xs">
+                        更新时间: <span id="rateUpdateTime">--</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="max-w-4xl mx-auto px-4 py-6">
-            <!-- 储蓄追踪页面 -->
-            <div id="savingsTab" class="tab-content">
-                <!-- 目标概览 -->
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white mb-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm opacity-90">储蓄目标</div>
-                            <div class="text-3xl font-bold">$<span id="savingsGoal">50,000</span></div>
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 左侧：储蓄追踪 -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">💎 储蓄追踪</h2>
+                    
+                    <!-- 目标概览 -->
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white mb-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <div class="text-sm opacity-90">储蓄目标</div>
+                                <div class="text-3xl font-bold">$<span id="savingsGoal">50,000</span></div>
+                            </div>
+                            <button id="editGoalBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition text-sm">编辑</button>
                         </div>
-                        <button id="editGoalBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition">编辑目标</button>
+                        <div class="mb-2">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>当前进度</span>
+                                <span id="savingsProgress">0%</span>
+                            </div>
+                            <div class="bg-white bg-opacity-20 rounded-full h-3">
+                                <div id="savingsProgressBar" class="bg-white rounded-full h-3 transition-all" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-bold mt-3">$<span id="savingsCurrent">0</span></div>
                     </div>
-                    <div class="mb-2">
-                        <div class="flex justify-between text-sm mb-1">
-                            <span>当前进度</span>
-                            <span id="savingsProgress">65%</span>
-                        </div>
-                        <div class="bg-white bg-opacity-20 rounded-full h-3">
-                            <div id="savingsProgressBar" class="bg-white rounded-full h-3 transition-all" style="width: 65%"></div>
-                        </div>
-                    </div>
-                    <div class="text-2xl font-bold mt-3">$<span id="savingsCurrent">32,500</span></div>
-                </div>
 
-                <!-- 每日利息 -->
-                <div class="bg-white rounded-lg shadow p-6 mb-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-semibold text-gray-800">💰 每日利息收益</h3>
-                        <button id="editRateBtn" class="text-blue-500 text-sm hover:underline">编辑利率</button>
+                    <!-- 每日利息 -->
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold text-gray-800">💰 每日利息收益</h3>
+                            <button id="editRateBtn" class="text-blue-500 text-sm hover:underline">编辑利率</button>
+                        </div>
+                        <div class="text-sm text-gray-600 mb-3">年化利率: <span id="interestRate" class="font-semibold text-gray-800">4.5%</span></div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="text-center p-3 bg-blue-50 rounded-lg">
+                                <div class="text-xs text-gray-600 mb-1">USD</div>
+                                <div class="text-lg font-bold text-blue-600">$<span id="dailyInterestUSD">0</span></div>
+                            </div>
+                            <div class="text-center p-3 bg-pink-50 rounded-lg">
+                                <div class="text-xs text-gray-600 mb-1">CAD</div>
+                                <div class="text-lg font-bold text-pink-600">$<span id="dailyInterestCAD">0</span></div>
+                            </div>
+                            <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                                <div class="text-xs text-gray-600 mb-1">CNY</div>
+                                <div class="text-lg font-bold text-yellow-600">¥<span id="dailyInterestCNY">0</span></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-sm text-gray-600 mb-3">年化利率: <span id="interestRate" class="font-semibold text-gray-800">4.5%</span></div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center p-3 bg-blue-50 rounded-lg">
-                            <div class="text-xs text-gray-600 mb-1">USD</div>
-                            <div class="text-lg font-bold text-blue-600">$<span id="dailyInterestUSD">4.01</span></div>
-                        </div>
-                        <div class="text-center p-3 bg-pink-50 rounded-lg">
-                            <div class="text-xs text-gray-600 mb-1">CAD</div>
-                            <div class="text-lg font-bold text-pink-600">$<span id="dailyInterestCAD">5.45</span></div>
-                        </div>
-                        <div class="text-center p-3 bg-yellow-50 rounded-lg">
-                            <div class="text-xs text-gray-600 mb-1">CNY</div>
-                            <div class="text-lg font-bold text-yellow-600">¥<span id="dailyInterestCNY">28.55</span></div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- 添加储蓄 -->
-                <div class="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 class="font-semibold text-gray-800 mb-4">➕ 添加储蓄</h3>
-                    <div class="flex gap-3">
-                        <input type="number" id="newSavingAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="输入金额 (USD)">
-                        <button id="addSavingBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition">添加</button>
-                    </div>
-                </div>
-
-                <!-- 储蓄记录 -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="font-semibold text-gray-800 mb-4">📊 最近记录</h3>
-                    <div id="savingsRecords" class="space-y-3">
-                        <!-- 记录将通过 JS 动态添加 -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 娱乐消费页面 -->
-            <div id="entertainmentTab" class="tab-content hidden">
-                <!-- 余额显示 -->
-                <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white mb-6">
-                    <div class="text-sm opacity-90 mb-2">娱乐资金余额</div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <div class="text-xs opacity-75 mb-1">USD</div>
-                            <div class="text-2xl font-bold">$<span id="balanceUSD">1,500</span></div>
-                        </div>
-                        <div>
-                            <div class="text-xs opacity-75 mb-1">CAD</div>
-                            <div class="text-2xl font-bold">$<span id="balanceCAD">2,040</span></div>
-                        </div>
-                        <div>
-                            <div class="text-xs opacity-75 mb-1">CNY</div>
-                            <div class="text-2xl font-bold">¥<span id="balanceCNY">10,680</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 添加充值 -->
-                <div class="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 class="font-semibold text-gray-800 mb-4">💳 充值娱乐资金</h3>
-                    <div class="flex gap-3">
-                        <input type="number" id="rechargeAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="输入金额 (USD)">
-                        <button id="rechargeBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold transition">充值</button>
-                    </div>
-                </div>
-
-                <!-- 添加消费 -->
-                <div class="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 class="font-semibold text-gray-800 mb-4">🛍️ 记录消费</h3>
-                    <div class="space-y-3">
+                    <!-- 添加储蓄 -->
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">➕ 添加储蓄</h3>
                         <div class="flex gap-3">
-                            <select id="expenseCurrency" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                <option value="USD">USD</option>
-                                <option value="CAD">CAD</option>
-                                <option value="CNY">CNY</option>
-                            </select>
-                            <input type="number" id="expenseAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="输入金额">
+                            <input type="number" id="newSavingAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="输入金额 (USD)">
+                            <button id="addSavingBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition">添加</button>
                         </div>
-                        <input type="text" id="expenseNote" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="备注 (可选)">
-                        <button id="addExpenseBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-semibold transition">记录消费</button>
+                    </div>
+
+                    <!-- 储蓄记录 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">📊 最近记录</h3>
+                        <div id="savingsRecords" class="space-y-3">
+                            <div class="text-gray-500 text-center py-4">暂无记录</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 消费记录 -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-semibold text-gray-800">📝 消费记录</h3>
-                        <button id="toggleExpenses" class="text-purple-500 text-sm hover:underline flex items-center gap-1">
-                            <span id="toggleExpensesText">展开全部</span>
-                            <svg id="toggleExpensesIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
+                <!-- 右侧：娱乐消费 -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">🎉 娱乐消费</h2>
+                    
+                    <!-- 余额显示 -->
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white mb-6">
+                        <div class="text-sm opacity-90 mb-2">娱乐资金余额</div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <div class="text-xs opacity-75 mb-1">USD</div>
+                                <div class="text-2xl font-bold">$<span id="balanceUSD">0</span></div>
+                            </div>
+                            <div>
+                                <div class="text-xs opacity-75 mb-1">CAD</div>
+                                <div class="text-2xl font-bold">$<span id="balanceCAD">0</span></div>
+                            </div>
+                            <div>
+                                <div class="text-xs opacity-75 mb-1">CNY</div>
+                                <div class="text-2xl font-bold">¥<span id="balanceCNY">0</span></div>
+                            </div>
+                        </div>
                     </div>
-                    <div id="expenseRecords" class="space-y-3">
-                        <!-- 记录将通过 JS 动态添加 -->
+
+                    <!-- 添加充值 -->
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">💳 充值娱乐资金</h3>
+                        <div class="flex gap-3">
+                            <input type="number" id="rechargeAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="输入金额 (USD)">
+                            <button id="rechargeBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold transition">充值</button>
+                        </div>
+                    </div>
+
+                    <!-- 添加消费 -->
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">🛍️ 记录消费</h3>
+                        <div class="space-y-3">
+                            <div class="flex gap-3">
+                                <select id="expenseCurrency" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <option value="USD">USD</option>
+                                    <option value="CAD">CAD</option>
+                                    <option value="CNY">CNY</option>
+                                </select>
+                                <input type="number" id="expenseAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="输入金额">
+                            </div>
+                            <input type="text" id="expenseNote" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="备注 (可选)">
+                            <button id="addExpenseBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-semibold transition">记录消费</button>
+                        </div>
+                    </div>
+
+                    <!-- 消费记录 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold text-gray-800">📝 消费记录</h3>
+                            <button id="toggleExpenses" class="text-purple-500 text-sm hover:underline flex items-center gap-1">
+                                <span id="toggleExpensesText">展开全部</span>
+                                <svg id="toggleExpensesIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="expenseRecords" class="space-y-3">
+                            <div class="text-gray-500 text-center py-4">暂无记录</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -193,13 +216,12 @@
     </div>
 
     <script>
-        // API 基础 URL (部署后替换为你的 Workers URL)
         const API_URL = '/api';
         
         let currentData = {
             savings: { goal: 50000, current: 0, interestRate: 4.5, records: [] },
             entertainment: { balance: 0, records: [] },
-            rates: { CAD: 1.36, CNY: 7.12 }
+            rates: { CAD: 1.36, CNY: 7.12, updatedAt: null }
         };
         let authToken = '';
         let showAllExpenses = false;
@@ -228,7 +250,6 @@
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                // 演示模式：使用模拟数据
                 if (username === 'demo' && password === 'demo') {
                     document.getElementById('loginPage').classList.add('hidden');
                     document.getElementById('mainApp').classList.remove('hidden');
@@ -239,37 +260,17 @@
             }
         });
 
-        // 密码可见性切换
         document.getElementById('togglePassword').addEventListener('click', function() {
             const passwordInput = document.getElementById('password');
             passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
         });
 
-        // 退出登录
         document.getElementById('logoutBtn').addEventListener('click', function() {
             authToken = '';
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('loginPage').classList.remove('hidden');
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
-        });
-
-        // 标签切换
-        document.querySelectorAll('.tab-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                const tab = btn.dataset.tab;
-                document.querySelectorAll('.tab-btn').forEach(function(b) {
-                    b.classList.remove('tab-active');
-                    b.classList.add('text-gray-500');
-                });
-                btn.classList.add('tab-active');
-                btn.classList.remove('text-gray-500');
-                
-                document.querySelectorAll('.tab-content').forEach(function(content) {
-                    content.classList.add('hidden');
-                });
-                document.getElementById(tab + 'Tab').classList.remove('hidden');
-            });
         });
 
         // 添加储蓄
@@ -291,12 +292,13 @@
                 await loadData();
             } catch (error) {
                 console.error('Add saving error:', error);
-                // 演示模式
                 currentData.savings.current += amount;
                 currentData.savings.records.unshift({
                     id: Date.now(),
                     amount: amount,
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    rate_cad: currentData.rates.CAD,
+                    rate_cny: currentData.rates.CNY
                 });
                 updateUI();
                 document.getElementById('newSavingAmount').value = '';
@@ -322,14 +324,15 @@
                 await loadData();
             } catch (error) {
                 console.error('Recharge error:', error);
-                // 演示模式
                 currentData.entertainment.balance += amount;
                 currentData.entertainment.records.unshift({
                     id: Date.now(),
                     amount: amount,
                     currency: 'USD',
                     note: '充值',
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    rate_cad: currentData.rates.CAD,
+                    rate_cny: currentData.rates.CNY
                 });
                 updateUI();
                 document.getElementById('rechargeAmount').value = '';
@@ -359,7 +362,6 @@
                 await loadData();
             } catch (error) {
                 console.error('Add expense error:', error);
-                // 演示模式
                 const rate = currency === 'USD' ? 1 : currentData.rates[currency];
                 const usdAmount = amount / rate;
                 currentData.entertainment.balance -= usdAmount;
@@ -368,13 +370,45 @@
                     amount: -amount,
                     currency: currency,
                     note: note || '消费',
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    rate_cad: currentData.rates.CAD,
+                    rate_cny: currentData.rates.CNY
                 });
                 updateUI();
                 document.getElementById('expenseAmount').value = '';
                 document.getElementById('expenseNote').value = '';
             }
         });
+
+        // 删除储蓄记录
+        function deleteSavingRecord(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            
+            const record = currentData.savings.records.find(function(r) { return r.id === id; });
+            if (record) {
+                currentData.savings.current -= record.amount;
+                currentData.savings.records = currentData.savings.records.filter(function(r) { return r.id !== id; });
+                updateUI();
+            }
+        }
+
+        // 删除娱乐记录
+        function deleteExpenseRecord(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            
+            const record = currentData.entertainment.records.find(function(r) { return r.id === id; });
+            if (record) {
+                if (record.amount > 0) {
+                    currentData.entertainment.balance -= record.amount;
+                } else {
+                    const rate = record.currency === 'USD' ? 1 : (record.rate_cad && record.currency === 'CAD' ? record.rate_cad : record.rate_cny);
+                    const usdAmount = Math.abs(record.amount) / rate;
+                    currentData.entertainment.balance += usdAmount;
+                }
+                currentData.entertainment.records = currentData.entertainment.records.filter(function(r) { return r.id !== id; });
+                updateUI();
+            }
+        }
 
         // 展开/收起消费记录
         document.getElementById('toggleExpenses').addEventListener('click', function() {
@@ -385,7 +419,30 @@
             icon.style.transform = showAllExpenses ? 'rotate(180deg)' : 'rotate(0deg)';
         });
 
-        // 加载数据
+        // 导出数据
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            let csvContent = '';
+            
+            // 储蓄记录
+            csvContent += '储蓄记录\n';
+            csvContent += '日期,金额(USD),记录时汇率(CAD),记录时汇率(CNY)\n';
+            currentData.savings.records.forEach(function(record) {
+                csvContent += record.date + ',' + record.amount + ',' + (record.rate_cad || '') + ',' + (record.rate_cny || '') + '\n';
+            });
+            
+            csvContent += '\n娱乐消费记录\n';
+            csvContent += '日期,金额,货币,备注,记录时汇率(CAD),记录时汇率(CNY)\n';
+            currentData.entertainment.records.forEach(function(record) {
+                csvContent += record.date + ',' + record.amount + ',' + record.currency + ',"' + (record.note || '') + '",' + (record.rate_cad || '') + ',' + (record.rate_cny || '') + '\n';
+            });
+            
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '财务记录_' + new Date().toISOString().split('T')[0] + '.csv';
+            link.click();
+        });
+
         async function loadData() {
             try {
                 const response = await fetch(API_URL + '/data', {
@@ -398,7 +455,6 @@
             }
         }
 
-        // 加载模拟数据
         function loadMockData() {
             currentData = {
                 savings: {
@@ -406,35 +462,38 @@
                     current: 32500,
                     interestRate: 4.5,
                     records: [
-                        { id: 1, amount: 5000, date: '2025-10-15' },
-                        { id: 2, amount: 2500, date: '2025-10-10' },
-                        { id: 3, amount: 3000, date: '2025-10-05' }
+                        { id: 1, amount: 5000, date: '2025-10-15', rate_cad: 1.36, rate_cny: 7.12 },
+                        { id: 2, amount: 2500, date: '2025-10-10', rate_cad: 1.35, rate_cny: 7.10 },
+                        { id: 3, amount: 3000, date: '2025-10-05', rate_cad: 1.37, rate_cny: 7.15 }
                     ]
                 },
                 entertainment: {
                     balance: 1500,
                     records: [
-                        { id: 1, amount: -25, currency: 'USD', note: '电影票', date: '2025-10-17' },
-                        { id: 2, amount: -80, currency: 'CAD', note: '晚餐', date: '2025-10-16' },
-                        { id: 3, amount: -300, currency: 'CNY', note: '购物', date: '2025-10-15' },
-                        { id: 4, amount: 500, currency: 'USD', note: '充值', date: '2025-10-14' },
-                        { id: 5, amount: -50, currency: 'USD', note: '游戏', date: '2025-10-13' },
-                        { id: 6, amount: -120, currency: 'CAD', note: '咖啡', date: '2025-10-12' },
-                        { id: 7, amount: -200, currency: 'CNY', note: '打车', date: '2025-10-11' }
+                        { id: 1, amount: -25, currency: 'USD', note: '电影票', date: '2025-10-17', rate_cad: 1.36, rate_cny: 7.12 },
+                        { id: 2, amount: -80, currency: 'CAD', note: '晚餐', date: '2025-10-16', rate_cad: 1.36, rate_cny: 7.12 },
+                        { id: 3, amount: -300, currency: 'CNY', note: '购物', date: '2025-10-15', rate_cad: 1.36, rate_cny: 7.12 },
+                        { id: 4, amount: 500, currency: 'USD', note: '充值', date: '2025-10-14', rate_cad: 1.35, rate_cny: 7.10 },
+                        { id: 5, amount: -50, currency: 'USD', note: '游戏', date: '2025-10-13', rate_cad: 1.35, rate_cny: 7.10 }
                     ]
                 },
-                rates: { CAD: 1.36, CNY: 7.12 }
+                rates: { CAD: 1.36, CNY: 7.12, updatedAt: '2025-10-18 08:00:00' }
             };
             updateUI();
         }
 
-        // 更新 UI
         function updateUI() {
             updateSavingsUI();
             updateEntertainmentUI();
+            updateRatesUI();
         }
 
-        // 更新储蓄 UI
+        function updateRatesUI() {
+            document.getElementById('rateCAD').textContent = currentData.rates.CAD.toFixed(4);
+            document.getElementById('rateCNY').textContent = currentData.rates.CNY.toFixed(4);
+            document.getElementById('rateUpdateTime').textContent = currentData.rates.updatedAt || '未知';
+        }
+
         function updateSavingsUI() {
             const goal = currentData.savings.goal;
             const current = currentData.savings.current;
@@ -458,17 +517,24 @@
             document.getElementById('dailyInterestCNY').textContent = (dailyInterest * CNY).toFixed(2);
             
             const recordsHtml = records.slice(0, 5).map(function(record) {
-                return '<div class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">' +
-                    '<div>' +
-                    '<div class="font-semibold text-gray-800">+$' + record.amount.toLocaleString() + '</div>' +
-                    '<div class="text-xs text-gray-500">' + record.date + '</div>' +
+                return '<div class="record-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0 group">' +
+                    '<div class="flex-1">' +
+                    '<div class="flex items-center gap-2">' +
+                    '<span class="font-semibold text-gray-800">+ + record.amount.toLocaleString() + '</span>' +
                     '</div>' +
+                    '<div class="text-xs text-gray-500 mt-1">' + record.date + '</div>' +
+                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') +
+                    '</div>' +
+                    '<button onclick="deleteSavingRecord(' + record.id + ')" class="delete-btn text-red-500 hover:text-red-700 px-2">' +
+                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>' +
+                    '</svg>' +
+                    '</button>' +
                     '</div>';
             }).join('');
             document.getElementById('savingsRecords').innerHTML = recordsHtml || '<div class="text-gray-500 text-center py-4">暂无记录</div>';
         }
 
-        // 更新娱乐消费 UI
         function updateEntertainmentUI() {
             const balance = currentData.entertainment.balance;
             const CAD = currentData.rates.CAD;
@@ -481,7 +547,6 @@
             updateExpenseRecords();
         }
 
-        // 更新消费记录
         function updateExpenseRecords() {
             const records = currentData.entertainment.records;
             const displayRecords = showAllExpenses ? records : records.slice(0, 7);
@@ -489,9 +554,9 @@
             const recordsHtml = displayRecords.map(function(record) {
                 const isExpense = record.amount < 0;
                 const currencyClass = record.currency.toLowerCase();
-                const symbol = record.currency === 'CNY' ? '¥' : '$';
+                const symbol = record.currency === 'CNY' ? '¥' : ';
                 
-                return '<div class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">' +
+                return '<div class="record-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0 group">' +
                     '<div class="flex-1">' +
                     '<div class="flex items-center gap-2 mb-1">' +
                     '<span class="currency-badge ' + currencyClass + '">' + record.currency + '</span>' +
@@ -500,15 +565,20 @@
                     '</span>' +
                     '</div>' +
                     '<div class="text-sm text-gray-600">' + record.note + '</div>' +
-                    '<div class="text-xs text-gray-400">' + record.date + '</div>' +
+                    '<div class="text-xs text-gray-500 mt-1">' + record.date + '</div>' +
+                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') +
                     '</div>' +
+                    '<button onclick="deleteExpenseRecord(' + record.id + ')" class="delete-btn text-red-500 hover:text-red-700 px-2">' +
+                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>' +
+                    '</svg>' +
+                    '</button>' +
                     '</div>';
             }).join('');
             
             document.getElementById('expenseRecords').innerHTML = recordsHtml || '<div class="text-gray-500 text-center py-4">暂无记录</div>';
         }
 
-        // 编辑目标
         document.getElementById('editGoalBtn').addEventListener('click', function() {
             const newGoal = prompt('请输入新的储蓄目标 (USD):', currentData.savings.goal);
             if (newGoal && !isNaN(newGoal) && newGoal > 0) {
@@ -517,7 +587,6 @@
             }
         });
 
-        // 编辑利率
         document.getElementById('editRateBtn').addEventListener('click', function() {
             const newRate = prompt('请输入新的年化利率 (%):', currentData.savings.interestRate);
             if (newRate && !isNaN(newRate) && newRate >= 0) {
@@ -525,6 +594,7 @@
                 updateUI();
             }
         });
-    </script>
-</body>
-</html>
+        
+        // 使删除函数全局可用
+        window.deleteSavingRecord = deleteSavingRecord;
+        window.deleteExpenseRecord = deleteExpenseRecord;
