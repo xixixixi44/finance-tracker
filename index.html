@@ -520,10 +520,10 @@
                 return '<div class="record-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0 group">' +
                     '<div class="flex-1">' +
                     '<div class="flex items-center gap-2">' +
-                    '<span class="font-semibold text-gray-800">+ + record.amount.toLocaleString() + '</span>' +
+                    '<span class="font-semibold text-gray-800">+$' + record.amount.toLocaleString() + '</span>' +
                     '</div>' +
                     '<div class="text-xs text-gray-500 mt-1">' + record.date + '</div>' +
-                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') +
+                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') + 
                     '</div>' +
                     '<button onclick="deleteSavingRecord(' + record.id + ')" class="delete-btn text-red-500 hover:text-red-700 px-2">' +
                     '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
@@ -554,7 +554,7 @@
             const recordsHtml = displayRecords.map(function(record) {
                 const isExpense = record.amount < 0;
                 const currencyClass = record.currency.toLowerCase();
-                const symbol = record.currency === 'CNY' ? '¥' : ';
+                const symbol = record.currency === 'CNY' ? '¥' : '$';
                 
                 return '<div class="record-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0 group">' +
                     '<div class="flex-1">' +
@@ -566,7 +566,7 @@
                     '</div>' +
                     '<div class="text-sm text-gray-600">' + record.note + '</div>' +
                     '<div class="text-xs text-gray-500 mt-1">' + record.date + '</div>' +
-                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') +
+                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') + 
                     '</div>' +
                     '<button onclick="deleteExpenseRecord(' + record.id + ')" class="delete-btn text-red-500 hover:text-red-700 px-2">' +
                     '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
@@ -598,3 +598,6 @@
         // 使删除函数全局可用
         window.deleteSavingRecord = deleteSavingRecord;
         window.deleteExpenseRecord = deleteExpenseRecord;
+    </script>
+</body>
+</html>
