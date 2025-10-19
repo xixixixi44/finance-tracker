@@ -579,19 +579,47 @@
             document.getElementById('expenseRecords').innerHTML = recordsHtml || '<div class="text-gray-500 text-center py-4">暂无记录</div>';
         }
 
-        document.getElementById('editGoalBtn').addEventListener('click', function() {
+        document.getElementById('editGoalBtn').addEventListener('click', async function() {
             const newGoal = prompt('请输入新的储蓄目标 (USD):', currentData.savings.goal);
             if (newGoal && !isNaN(newGoal) && newGoal > 0) {
-                currentData.savings.goal = parseFloat(newGoal);
-                updateUI();
+                try {
+                    await fetch(API_URL + '/savings/update-goal', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken
+                        },
+                        body: JSON.stringify({ goal: parseFloat(newGoal) })
+                    });
+                    await loadData(); // Reload data from backend to confirm
+                } catch (error) {
+                    console.error('Update goal error:', error);
+                    // Fallback for demo mode
+                    currentData.savings.goal = parseFloat(newGoal);
+                    updateUI();
+                }
             }
         });
 
-        document.getElementById('editRateBtn').addEventListener('click', function() {
+        document.getElementById('editRateBtn').addEventListener('click', async function() {
             const newRate = prompt('请输入新的年化利率 (%):', currentData.savings.interestRate);
             if (newRate && !isNaN(newRate) && newRate >= 0) {
-                currentData.savings.interestRate = parseFloat(newRate);
-                updateUI();
+                try {
+                    await fetch(API_URL + '/savings/update-rate', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken
+                        },
+                        body: JSON.stringify({ rate: parseFloat(newRate) })
+                    });
+                    await loadData(); // Reload data from backend to confirm
+                } catch (error) {
+                    console.error('Update rate error:', error);
+                    // Fallback for demo mode
+                    currentData.savings.interestRate = parseFloat(newRate);
+                    updateUI();
+                }
             }
         });
         
