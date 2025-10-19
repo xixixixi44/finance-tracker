@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS savings_records (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     amount REAL NOT NULL,
     date TEXT NOT NULL,
+    rate_cad REAL,
+    rate_cny REAL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -44,7 +46,8 @@ CREATE TABLE IF NOT EXISTS entertainment_records (
     currency TEXT NOT NULL DEFAULT 'USD',
     note TEXT,
     date TEXT NOT NULL,
-    exchange_rate REAL DEFAULT 1,
+    rate_cad REAL,
+    rate_cny REAL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
