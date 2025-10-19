@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>个人财务管理</title>
+    <title>Horizon Plan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -13,13 +13,15 @@
         .cny { background: #fef3c7; color: #b45309; }
         .record-item:hover .delete-btn { opacity: 1; }
         .delete-btn { opacity: 0; transition: opacity 0.2s; }
+        #refreshRatesBtn.loading svg { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50">
     <!-- 登录页面 -->
     <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">🔒 财务管理系统</h1>
+            <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">🔒 Horizon Plan</h1>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
@@ -34,7 +36,6 @@
                 </div>
                 <button id="loginBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition">登录</button>
                 <div id="loginError" class="text-red-500 text-sm text-center hidden">用户名或密码错误</div>
-                <div class="text-xs text-gray-500 text-center mt-4">提示: 演示模式请使用 demo/demo 登录</div>
             </div>
         </div>
     </div>
@@ -44,19 +45,15 @@
         <!-- 头部 -->
         <div class="bg-white shadow-sm border-b">
             <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-800">💰 财务管理</h1>
+                <h1 class="text-xl font-bold text-gray-800">🗽 Horizon Plan</h1>
                 <div class="flex items-center gap-4">
                     <button id="exportBtn" class="text-gray-600 hover:text-gray-800 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span>导出数据</span>
                     </button>
                     <button id="logoutBtn" class="text-gray-600 hover:text-gray-800 flex items-center gap-2">
                         <span>退出</span>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
                 </div>
             </div>
@@ -67,12 +64,15 @@
             <div class="max-w-6xl mx-auto px-4 py-3">
                 <div class="flex items-center justify-between text-sm">
                     <div class="flex items-center gap-6">
-                        <span class="text-gray-600">💱 实时汇率</span>
+                        <span class="text-gray-600">💱 汇率</span>
                         <span class="font-semibold">1 USD = <span id="rateCAD">1.36</span> CAD</span>
                         <span class="font-semibold">1 USD = <span id="rateCNY">7.12</span> CNY</span>
                     </div>
-                    <div class="text-gray-500 text-xs">
-                        更新时间: <span id="rateUpdateTime">--</span>
+                    <div class="flex items-center gap-4">
+                        <div class="text-gray-500 text-xs">更新于: <span id="rateUpdateTime">--</span></div>
+                        <button id="refreshRatesBtn" class="text-blue-500 hover:text-blue-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l16 16"></path></svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -83,8 +83,6 @@
                 <!-- 左侧：储蓄追踪 -->
                 <div>
                     <h2 class="text-lg font-bold text-gray-800 mb-4">💎 储蓄追踪</h2>
-                    
-                    <!-- 目标概览 -->
                     <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white mb-6">
                         <div class="flex justify-between items-start mb-4">
                             <div>
@@ -98,14 +96,10 @@
                                 <span>当前进度</span>
                                 <span id="savingsProgress">0%</span>
                             </div>
-                            <div class="bg-white bg-opacity-20 rounded-full h-3">
-                                <div id="savingsProgressBar" class="bg-white rounded-full h-3 transition-all" style="width: 0%"></div>
-                            </div>
+                            <div class="bg-white bg-opacity-20 rounded-full h-3"><div id="savingsProgressBar" class="bg-white rounded-full h-3 transition-all" style="width: 0%"></div></div>
                         </div>
                         <div class="text-2xl font-bold mt-3">$<span id="savingsCurrent">0</span></div>
                     </div>
-
-                    <!-- 每日利息 -->
                     <div class="bg-white rounded-lg shadow p-6 mb-6">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-semibold text-gray-800">💰 每日利息收益</h3>
@@ -113,22 +107,11 @@
                         </div>
                         <div class="text-sm text-gray-600 mb-3">年化利率: <span id="interestRate" class="font-semibold text-gray-800">4.5%</span></div>
                         <div class="grid grid-cols-3 gap-4">
-                            <div class="text-center p-3 bg-blue-50 rounded-lg">
-                                <div class="text-xs text-gray-600 mb-1">USD</div>
-                                <div class="text-lg font-bold text-blue-600">$<span id="dailyInterestUSD">0</span></div>
-                            </div>
-                            <div class="text-center p-3 bg-pink-50 rounded-lg">
-                                <div class="text-xs text-gray-600 mb-1">CAD</div>
-                                <div class="text-lg font-bold text-pink-600">$<span id="dailyInterestCAD">0</span></div>
-                            </div>
-                            <div class="text-center p-3 bg-yellow-50 rounded-lg">
-                                <div class="text-xs text-gray-600 mb-1">CNY</div>
-                                <div class="text-lg font-bold text-yellow-600">¥<span id="dailyInterestCNY">0</span></div>
-                            </div>
+                            <div class="text-center p-3 bg-blue-50 rounded-lg"><div class="text-xs text-gray-600 mb-1">USD</div><div class="text-lg font-bold text-blue-600">$<span id="dailyInterestUSD">0</span></div></div>
+                            <div class="text-center p-3 bg-pink-50 rounded-lg"><div class="text-xs text-gray-600 mb-1">CAD</div><div class="text-lg font-bold text-pink-600">$<span id="dailyInterestCAD">0</span></div></div>
+                            <div class="text-center p-3 bg-yellow-50 rounded-lg"><div class="text-xs text-gray-600 mb-1">CNY</div><div class="text-lg font-bold text-yellow-600">¥<span id="dailyInterestCNY">0</span></div></div>
                         </div>
                     </div>
-
-                    <!-- 添加储蓄 -->
                     <div class="bg-white rounded-lg shadow p-6 mb-6">
                         <h3 class="font-semibold text-gray-800 mb-4">➕ 添加储蓄</h3>
                         <div class="flex gap-3">
@@ -136,40 +119,23 @@
                             <button id="addSavingBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition">添加</button>
                         </div>
                     </div>
-
-                    <!-- 储蓄记录 -->
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="font-semibold text-gray-800 mb-4">📊 最近记录</h3>
-                        <div id="savingsRecords" class="space-y-3">
-                            <div class="text-gray-500 text-center py-4">暂无记录</div>
-                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-4">📊 最近储蓄记录</h3>
+                        <div id="savingsRecords" class="space-y-2"></div>
                     </div>
                 </div>
 
                 <!-- 右侧：娱乐消费 -->
                 <div>
                     <h2 class="text-lg font-bold text-gray-800 mb-4">🎉 娱乐消费</h2>
-                    
-                    <!-- 余额显示 -->
                     <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white mb-6">
                         <div class="text-sm opacity-90 mb-2">娱乐资金余额</div>
                         <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <div class="text-xs opacity-75 mb-1">USD</div>
-                                <div class="text-2xl font-bold">$<span id="balanceUSD">0</span></div>
-                            </div>
-                            <div>
-                                <div class="text-xs opacity-75 mb-1">CAD</div>
-                                <div class="text-2xl font-bold">$<span id="balanceCAD">0</span></div>
-                            </div>
-                            <div>
-                                <div class="text-xs opacity-75 mb-1">CNY</div>
-                                <div class="text-2xl font-bold">¥<span id="balanceCNY">0</span></div>
-                            </div>
+                            <div><div class="text-xs opacity-75 mb-1">USD</div><div class="text-2xl font-bold">$<span id="balanceUSD">0</span></div></div>
+                            <div><div class="text-xs opacity-75 mb-1">CAD</div><div class="text-2xl font-bold">$<span id="balanceCAD">0</span></div></div>
+                            <div><div class="text-xs opacity-75 mb-1">CNY</div><div class="text-2xl font-bold">¥<span id="balanceCNY">0</span></div></div>
                         </div>
                     </div>
-
-                    <!-- 添加充值 -->
                     <div class="bg-white rounded-lg shadow p-6 mb-6">
                         <h3 class="font-semibold text-gray-800 mb-4">💳 充值娱乐资金</h3>
                         <div class="flex gap-3">
@@ -177,38 +143,27 @@
                             <button id="rechargeBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold transition">充值</button>
                         </div>
                     </div>
-
-                    <!-- 添加消费 -->
                     <div class="bg-white rounded-lg shadow p-6 mb-6">
                         <h3 class="font-semibold text-gray-800 mb-4">🛍️ 记录消费</h3>
                         <div class="space-y-3">
-                            <div class="flex gap-3">
-                                <select id="expenseCurrency" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                    <option value="USD">USD</option>
-                                    <option value="CAD">CAD</option>
-                                    <option value="CNY">CNY</option>
-                                </select>
-                                <input type="number" id="expenseAmount" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="输入金额">
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" id="expenseUSD" data-currency="USD" class="expense-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="USD">
+                                <input type="number" id="expenseCAD" data-currency="CAD" class="expense-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="CAD">
+                                <input type="number" id="expenseCNY" data-currency="CNY" class="expense-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="CNY">
                             </div>
                             <input type="text" id="expenseNote" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="备注 (可选)">
                             <button id="addExpenseBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-semibold transition">记录消费</button>
                         </div>
                     </div>
-
-                    <!-- 消费记录 -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-semibold text-gray-800">📝 消费记录</h3>
                             <button id="toggleExpenses" class="text-purple-500 text-sm hover:underline flex items-center gap-1">
                                 <span id="toggleExpensesText">展开全部</span>
-                                <svg id="toggleExpensesIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
+                                <svg id="toggleExpensesIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                         </div>
-                        <div id="expenseRecords" class="space-y-3">
-                            <div class="text-gray-500 text-center py-4">暂无记录</div>
-                        </div>
+                        <div id="expenseRecords" class="space-y-2"></div>
                     </div>
                 </div>
             </div>
@@ -226,7 +181,7 @@
         let authToken = '';
         let showAllExpenses = false;
 
-        // 登录功能
+        // --- Auth & Init ---
         document.getElementById('loginBtn').addEventListener('click', async function() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -235,13 +190,14 @@
                 const response = await fetch(API_URL + '/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username, password: password })
+                    body: JSON.stringify({ username, password })
                 });
                 
                 const data = await response.json();
                 
-                if (data.success) {
+                if (data.success && data.token) {
                     authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
                     document.getElementById('loginPage').classList.add('hidden');
                     document.getElementById('mainApp').classList.remove('hidden');
                     await loadData();
@@ -250,13 +206,7 @@
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                if (username === 'demo' && password === 'demo') {
-                    document.getElementById('loginPage').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
-                    loadMockData();
-                } else {
-                    document.getElementById('loginError').classList.remove('hidden');
-                }
+                document.getElementById('loginError').classList.remove('hidden');
             }
         });
 
@@ -267,251 +217,173 @@
 
         document.getElementById('logoutBtn').addEventListener('click', function() {
             authToken = '';
+            localStorage.removeItem('authToken');
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('loginPage').classList.remove('hidden');
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
         });
 
-        // 添加储蓄
-        document.getElementById('addSavingBtn').addEventListener('click', async function() {
-            const amount = parseFloat(document.getElementById('newSavingAmount').value);
-            if (!amount || amount <= 0) return;
-            
-            try {
-                await fetch(API_URL + '/savings/add', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + authToken
-                    },
-                    body: JSON.stringify({ amount: amount })
-                });
-                
-                document.getElementById('newSavingAmount').value = '';
-                await loadData();
-            } catch (error) {
-                console.error('Add saving error:', error);
-                currentData.savings.current += amount;
-                currentData.savings.records.unshift({
-                    id: Date.now(),
-                    amount: amount,
-                    date: new Date().toISOString().split('T')[0],
-                    rate_cad: currentData.rates.CAD,
-                    rate_cny: currentData.rates.CNY
-                });
-                updateUI();
-                document.getElementById('newSavingAmount').value = '';
+        // --- API Calls ---
+        async function apiFetch(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authToken,
+                ...options.headers,
+            };
+            const response = await fetch(API_URL + endpoint, { ...options, headers });
+            if (response.status === 401) { // Unauthorized
+                document.getElementById('logoutBtn').click();
+                return;
             }
-        });
-
-        // 充值娱乐资金
-        document.getElementById('rechargeBtn').addEventListener('click', async function() {
-            const amount = parseFloat(document.getElementById('rechargeAmount').value);
-            if (!amount || amount <= 0) return;
-            
-            try {
-                await fetch(API_URL + '/entertainment/recharge', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + authToken
-                    },
-                    body: JSON.stringify({ amount: amount })
-                });
-                
-                document.getElementById('rechargeAmount').value = '';
-                await loadData();
-            } catch (error) {
-                console.error('Recharge error:', error);
-                currentData.entertainment.balance += amount;
-                currentData.entertainment.records.unshift({
-                    id: Date.now(),
-                    amount: amount,
-                    currency: 'USD',
-                    note: '充值',
-                    date: new Date().toISOString().split('T')[0],
-                    rate_cad: currentData.rates.CAD,
-                    rate_cny: currentData.rates.CNY
-                });
-                updateUI();
-                document.getElementById('rechargeAmount').value = '';
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
             }
-        });
-
-        // 添加消费
-        document.getElementById('addExpenseBtn').addEventListener('click', async function() {
-            const amount = parseFloat(document.getElementById('expenseAmount').value);
-            const currency = document.getElementById('expenseCurrency').value;
-            const note = document.getElementById('expenseNote').value;
-            
-            if (!amount || amount <= 0) return;
-            
-            try {
-                await fetch(API_URL + '/entertainment/expense', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + authToken
-                    },
-                    body: JSON.stringify({ amount: amount, currency: currency, note: note })
-                });
-                
-                document.getElementById('expenseAmount').value = '';
-                document.getElementById('expenseNote').value = '';
-                await loadData();
-            } catch (error) {
-                console.error('Add expense error:', error);
-                const rate = currency === 'USD' ? 1 : currentData.rates[currency];
-                const usdAmount = amount / rate;
-                currentData.entertainment.balance -= usdAmount;
-                currentData.entertainment.records.unshift({
-                    id: Date.now(),
-                    amount: -amount,
-                    currency: currency,
-                    note: note || '消费',
-                    date: new Date().toISOString().split('T')[0],
-                    rate_cad: currentData.rates.CAD,
-                    rate_cny: currentData.rates.CNY
-                });
-                updateUI();
-                document.getElementById('expenseAmount').value = '';
-                document.getElementById('expenseNote').value = '';
-            }
-        });
-
-        // 删除储蓄记录
-        async function deleteSavingRecord(id) {
-            if (!confirm('确定要删除这条记录吗？')) return;
-            
-            try {
-                await fetch(API_URL + '/savings/delete', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + authToken
-                    },
-                    body: JSON.stringify({ id: id })
-                });
-                await loadData(); // Reload data from backend
-            } catch (error) {
-                console.error('Delete saving error:', error);
-            }
+            return response.json();
         }
-
-        // 删除娱乐记录
-        async function deleteExpenseRecord(id) {
-            if (!confirm('确定要删除这条记录吗？')) return;
-            
-            try {
-                await fetch(API_URL + '/entertainment/delete', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + authToken
-                    },
-                    body: JSON.stringify({ id: id })
-                });
-                await loadData(); // Reload data from backend
-            } catch (error) {
-                console.error('Delete expense error:', error);
-            }
-        }
-
-        // 展开/收起消费记录
-        document.getElementById('toggleExpenses').addEventListener('click', function() {
-            showAllExpenses = !showAllExpenses;
-            updateExpenseRecords();
-            document.getElementById('toggleExpensesText').textContent = showAllExpenses ? '收起' : '展开全部';
-            const icon = document.getElementById('toggleExpensesIcon');
-            icon.style.transform = showAllExpenses ? 'rotate(180deg)' : 'rotate(0deg)';
-        });
-
-        // 导出数据
-        document.getElementById('exportBtn').addEventListener('click', function() {
-            let csvContent = '';
-            
-            // 储蓄记录
-            csvContent += '储蓄记录\n';
-            csvContent += '日期,金额(USD),记录时汇率(CAD),记录时汇率(CNY)\n';
-            currentData.savings.records.forEach(function(record) {
-                csvContent += record.date + ',' + record.amount + ',' + (record.rate_cad || '') + ',' + (record.rate_cny || '') + '\n';
-            });
-            
-            csvContent += '\n娱乐消费记录\n';
-            csvContent += '日期,金额,货币,备注,记录时汇率(CAD),记录时汇率(CNY)\n';
-            currentData.entertainment.records.forEach(function(record) {
-                csvContent += record.date + ',' + record.amount + ',' + record.currency + ',"' + (record.note || '') + '",' + (record.rate_cad || '') + ',' + (record.rate_cny || '') + '\n';
-            });
-            
-            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = '财务记录_' + new Date().toISOString().split('T')[0] + '.csv';
-            link.click();
-        });
 
         async function loadData() {
             try {
-                const response = await fetch(API_URL + '/data', {
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                currentData = await response.json();
+                currentData = await apiFetch('/data');
                 updateUI();
             } catch (error) {
                 console.error('Load data error:', error);
             }
         }
 
-        function loadMockData() {
-            currentData = {
-                savings: {
-                    goal: 50000,
-                    current: 32500,
-                    interestRate: 4.5,
-                    records: [
-                        { id: 1, amount: 5000, date: '2025-10-15', rate_cad: 1.36, rate_cny: 7.12 },
-                        { id: 2, amount: 2500, date: '2025-10-10', rate_cad: 1.35, rate_cny: 7.10 },
-                        { id: 3, amount: 3000, date: '2025-10-05', rate_cad: 1.37, rate_cny: 7.15 }
-                    ]
-                },
-                entertainment: {
-                    balance: 1500,
-                    records: [
-                        { id: 1, amount: -25, currency: 'USD', note: '电影票', date: '2025-10-17', rate_cad: 1.36, rate_cny: 7.12 },
-                        { id: 2, amount: -80, currency: 'CAD', note: '晚餐', date: '2025-10-16', rate_cad: 1.36, rate_cny: 7.12 },
-                        { id: 3, amount: -300, currency: 'CNY', note: '购物', date: '2025-10-15', rate_cad: 1.36, rate_cny: 7.12 },
-                        { id: 4, amount: 500, currency: 'USD', note: '充值', date: '2025-10-14', rate_cad: 1.35, rate_cny: 7.10 },
-                        { id: 5, amount: -50, currency: 'USD', note: '游戏', date: '2025-10-13', rate_cad: 1.35, rate_cny: 7.10 }
-                    ]
-                },
-                rates: { CAD: 1.36, CNY: 7.12, updatedAt: '2025-10-18 08:00:00' }
-            };
-            updateUI();
+        // --- Event Listeners ---
+        document.getElementById('addSavingBtn').addEventListener('click', async function() {
+            const amount = parseFloat(document.getElementById('newSavingAmount').value);
+            if (!amount || amount <= 0) return;
+            await apiFetch('/savings/add', { method: 'POST', body: JSON.stringify({ amount }) });
+            document.getElementById('newSavingAmount').value = '';
+            await loadData();
+        });
+
+        document.getElementById('rechargeBtn').addEventListener('click', async function() {
+            const amount = parseFloat(document.getElementById('rechargeAmount').value);
+            if (!amount || amount <= 0) return;
+            await apiFetch('/entertainment/recharge', { method: 'POST', body: JSON.stringify({ amount }) });
+            document.getElementById('rechargeAmount').value = '';
+            await loadData();
+        });
+
+        document.getElementById('addExpenseBtn').addEventListener('click', async function() {
+            const inputs = document.querySelectorAll('.expense-input');
+            let amount = 0, currency = '';
+            for (const input of inputs) {
+                if (input.value) {
+                    amount = parseFloat(input.value);
+                    currency = input.dataset.currency;
+                    break;
+                }
+            }
+            const note = document.getElementById('expenseNote').value;
+            if (!amount || amount <= 0 || !currency) return;
+
+            await apiFetch('/entertainment/expense', { method: 'POST', body: JSON.stringify({ amount, currency, note }) });
+            
+            inputs.forEach(input => input.value = '');
+            document.getElementById('expenseNote').value = '';
+            await loadData();
+        });
+        
+        document.querySelectorAll('.expense-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                document.querySelectorAll('.expense-input').forEach(otherInput => {
+                    if (otherInput !== e.target) {
+                        otherInput.value = '';
+                    }
+                });
+            });
+        });
+
+        document.getElementById('refreshRatesBtn').addEventListener('click', async function(e) {
+            const btn = e.currentTarget;
+            btn.classList.add('loading');
+            try {
+                await fetch(API_URL + '/rates/update');
+                await loadData();
+            } catch (error) {
+                console.error("Failed to refresh rates", error);
+            } finally {
+                btn.classList.remove('loading');
+            }
+        });
+
+        async function deleteSavingRecord(id) {
+            if (!confirm('确定要删除这条储蓄记录吗？')) return;
+            await apiFetch('/savings/delete', { method: 'POST', body: JSON.stringify({ id }) });
+            await loadData();
         }
 
+        async function deleteExpenseRecord(id) {
+            if (!confirm('确定要删除这条消费记录吗？')) return;
+            await apiFetch('/entertainment/delete', { method: 'POST', body: JSON.stringify({ id }) });
+            await loadData();
+        }
+
+        document.getElementById('toggleExpenses').addEventListener('click', function() {
+            showAllExpenses = !showAllExpenses;
+            updateExpenseRecords();
+            document.getElementById('toggleExpensesText').textContent = showAllExpenses ? '收起' : '展开全部';
+            document.getElementById('toggleExpensesIcon').style.transform = showAllExpenses ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            let csvContent = '储蓄记录
+日期,金额(USD),记录时汇率(CAD),记录时汇率(CNY)
+';
+            currentData.savings.records.forEach(r => { csvContent += `${r.date},${r.amount},${r.rate_cad || ''},${r.rate_cny || ''}
+`; });
+            csvContent += '
+娱乐消费记录
+日期,金额,货币,备注,记录时汇率(CAD),记录时汇率(CNY)
+';
+            currentData.entertainment.records.forEach(r => { csvContent += `${r.date},${r.amount},${r.currency},"${r.note || ''}",${r.rate_cad || ''},${r.rate_cny || ''}
+`; });
+            const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'HorizonPlan_Export_' + new Date().toISOString().split('T')[0] + '.csv';
+            link.click();
+        });
+
+        document.getElementById('editGoalBtn').addEventListener('click', async function() {
+            const newGoal = prompt('请输入新的储蓄目标 (USD):', currentData.savings.goal);
+            if (newGoal && !isNaN(newGoal) && newGoal > 0) {
+                await apiFetch('/savings/update-goal', { method: 'POST', body: JSON.stringify({ goal: parseFloat(newGoal) }) });
+                await loadData();
+            }
+        });
+
+        document.getElementById('editRateBtn').addEventListener('click', async function() {
+            const newRate = prompt('请输入新的年化利率 (%):', currentData.savings.interestRate);
+            if (newRate && !isNaN(newRate) && newRate >= 0) {
+                await apiFetch('/savings/update-rate', { method: 'POST', body: JSON.stringify({ rate: parseFloat(newRate) }) });
+                await loadData();
+            }
+        });
+
+        // --- UI Update Functions ---
         function updateUI() {
+            updateRatesUI();
             updateSavingsUI();
             updateEntertainmentUI();
-            updateRatesUI();
         }
 
         function updateRatesUI() {
             document.getElementById('rateCAD').textContent = currentData.rates.CAD.toFixed(4);
             document.getElementById('rateCNY').textContent = currentData.rates.CNY.toFixed(4);
-            document.getElementById('rateUpdateTime').textContent = currentData.rates.updatedAt || '未知';
+            document.getElementById('rateUpdateTime').textContent = new Date(currentData.rates.updatedAt).toLocaleString('zh-CN');
         }
 
         function updateSavingsUI() {
-            const goal = currentData.savings.goal;
-            const current = currentData.savings.current;
-            const interestRate = currentData.savings.interestRate;
-            const records = currentData.savings.records;
-            const CAD = currentData.rates.CAD;
-            const CNY = currentData.rates.CNY;
+            const { goal, current, interestRate, records } = currentData.savings;
+            const { CAD, CNY } = currentData.rates;
             
             document.getElementById('savingsGoal').textContent = goal.toLocaleString();
-            document.getElementById('savingsCurrent').textContent = current.toLocaleString();
+            document.getElementById('savingsCurrent').textContent = current.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
             const progress = Math.min((current / goal) * 100, 100);
             document.getElementById('savingsProgress').textContent = progress.toFixed(1) + '%';
@@ -524,31 +396,24 @@
             document.getElementById('dailyInterestCAD').textContent = (dailyInterest * CAD).toFixed(2);
             document.getElementById('dailyInterestCNY').textContent = (dailyInterest * CNY).toFixed(2);
             
-            const recordsHtml = records.slice(0, 5).map(function(record) {
-                return '<div class="record-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0 group">' +
-                    '<div class="flex-1">' +
-                    '<div class="flex items-center gap-2">' +
-                    '<span class="font-semibold text-gray-800">+$' + record.amount.toLocaleString() + '</span>' +
-                    '</div>' +
-                    '<div class="text-xs text-gray-500 mt-1">' + record.date + '</div>' +
-                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') + 
-                    '</div>' +
-                    '<button onclick="deleteSavingRecord(' + record.id + ')" class="delete-btn text-red-500 hover:text-red-700 px-2">' +
-                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>' +
-                    '</svg>' +
-                    '</button>' +
-                    '</div>';
-            }).join('');
+            const recordsHtml = records.map(r => `
+                <div class="record-item flex justify-between items-center py-2 border-b border-gray-100 last:border-0 group">
+                    <div class="flex items-center gap-4">
+                        <span class="font-semibold text-gray-800">+$${r.amount.toLocaleString()}</span>
+                        <span class="text-xs text-gray-500">${r.date}</span>
+                    </div>
+                    <button onclick="deleteSavingRecord(${r.id})" class="delete-btn text-red-500 hover:text-red-700 px-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>`).join('');
             document.getElementById('savingsRecords').innerHTML = recordsHtml || '<div class="text-gray-500 text-center py-4">暂无记录</div>';
         }
 
         function updateEntertainmentUI() {
-            const balance = currentData.entertainment.balance;
-            const CAD = currentData.rates.CAD;
-            const CNY = currentData.rates.CNY;
+            const { balance } = currentData.entertainment;
+            const { CAD, CNY } = currentData.rates;
             
-            document.getElementById('balanceUSD').textContent = balance.toLocaleString();
+            document.getElementById('balanceUSD').textContent = balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('balanceCAD').textContent = (balance * CAD).toFixed(2);
             document.getElementById('balanceCNY').textContent = (balance * CNY).toFixed(2);
             
@@ -559,81 +424,59 @@
             const records = currentData.entertainment.records;
             const displayRecords = showAllExpenses ? records : records.slice(0, 7);
             
-            const recordsHtml = displayRecords.map(function(record) {
-                const isExpense = record.amount < 0;
-                const currencyClass = record.currency.toLowerCase();
-                const symbol = record.currency === 'CNY' ? '¥' : '$';
+            const recordsHtml = displayRecords.map(r => {
+                const isExpense = r.amount < 0;
+                const absAmount = Math.abs(r.amount);
+                const symbol = r.currency === 'CNY' ? '¥' : '$';
                 
-                return '<div class="record-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0 group">' +
-                    '<div class="flex-1">' +
-                    '<div class="flex items-center gap-2 mb-1">' +
-                    '<span class="currency-badge ' + currencyClass + '">' + record.currency + '</span>' +
-                    '<span class="font-semibold ' + (isExpense ? 'text-red-500' : 'text-green-500') + '">' +
-                    (isExpense ? '' : '+') + symbol + Math.abs(record.amount).toLocaleString() +
-                    '</span>' +
-                    '</div>' +
-                    '<div class="text-sm text-gray-600">' + record.note + '</div>' +
-                    '<div class="text-xs text-gray-500 mt-1">' + record.date + '</div>' +
-                    (record.rate_cad ? '<div class="text-xs text-gray-400 mt-1">汇率: CAD ' + record.rate_cad.toFixed(4) + ' | CNY ' + record.rate_cny.toFixed(4) + '</div>' : '') + 
-                    '</div>' +
-                    '<button onclick="deleteExpenseRecord(' + record.id + ')" class="delete-btn text-red-500 hover:text-red-700 px-2">' +
-                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>' +
-                    '</svg>' +
-                    '</button>' +
-                    '</div>';
+                let equivalent = '';
+                if (r.rate_cad && r.rate_cny) {
+                    if (r.currency === 'USD') {
+                        equivalent = `~ $${(absAmount * r.rate_cad).toFixed(2)} CAD | ¥${(absAmount * r.rate_cny).toFixed(2)} CNY`;
+                    } else if (r.currency === 'CAD') {
+                        const usdVal = absAmount / r.rate_cad;
+                        equivalent = `~ $${usdVal.toFixed(2)} USD | ¥${(usdVal * r.rate_cny).toFixed(2)} CNY`;
+                    } else if (r.currency === 'CNY') {
+                        const usdVal = absAmount / r.rate_cny;
+                        equivalent = `~ $${usdVal.toFixed(2)} USD | $${(usdVal * r.rate_cad).toFixed(2)} CAD`;
+                    }
+                }
+
+                return `
+                <div class="record-item flex justify-between items-center py-2 border-b border-gray-100 last:border-0 group">
+                    <div>
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="currency-badge ${r.currency.toLowerCase()}">${r.currency}</span>
+                            <span class="font-semibold ${isExpense ? 'text-red-500' : 'text-green-500'}">
+                                ${isExpense ? '-' : '+'}${symbol}${absAmount.toLocaleString()}
+                            </span>
+                            <span class="text-sm text-gray-600 truncate">${r.note || ''}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 ml-12">${r.date} <span class="text-gray-400 ml-2">${equivalent}</span></div>
+                    </div>
+                    <button onclick="deleteExpenseRecord(${r.id})" class="delete-btn text-red-500 hover:text-red-700 px-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>`;
             }).join('');
             
             document.getElementById('expenseRecords').innerHTML = recordsHtml || '<div class="text-gray-500 text-center py-4">暂无记录</div>';
         }
-
-        document.getElementById('editGoalBtn').addEventListener('click', async function() {
-            const newGoal = prompt('请输入新的储蓄目标 (USD):', currentData.savings.goal);
-            if (newGoal && !isNaN(newGoal) && newGoal > 0) {
-                try {
-                    await fetch(API_URL + '/savings/update-goal', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + authToken
-                        },
-                        body: JSON.stringify({ goal: parseFloat(newGoal) })
-                    });
-                    await loadData(); // Reload data from backend to confirm
-                } catch (error) {
-                    console.error('Update goal error:', error);
-                    // Fallback for demo mode
-                    currentData.savings.goal = parseFloat(newGoal);
-                    updateUI();
-                }
-            }
-        });
-
-        document.getElementById('editRateBtn').addEventListener('click', async function() {
-            const newRate = prompt('请输入新的年化利率 (%):', currentData.savings.interestRate);
-            if (newRate && !isNaN(newRate) && newRate >= 0) {
-                try {
-                    await fetch(API_URL + '/savings/update-rate', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + authToken
-                        },
-                        body: JSON.stringify({ rate: parseFloat(newRate) })
-                    });
-                    await loadData(); // Reload data from backend to confirm
-                } catch (error) {
-                    console.error('Update rate error:', error);
-                    // Fallback for demo mode
-                    currentData.savings.interestRate = parseFloat(newRate);
-                    updateUI();
-                }
-            }
-        });
         
-        // 使删除函数全局可用
+        // --- Global Scope & Init ---
         window.deleteSavingRecord = deleteSavingRecord;
         window.deleteExpenseRecord = deleteExpenseRecord;
+
+        // Check for saved token on page load
+        (async function() {
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                authToken = savedToken;
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                await loadData();
+            }
+        })();
     </script>
 </body>
 </html>
