@@ -24,6 +24,10 @@ export async function onRequest(context) {
       return await handleLogin(request, env, corsHeaders);
     }
     
+    if (path === '/rates/update' && request.method === 'GET') {
+      return await updateExchangeRates(env, corsHeaders);
+    }
+
     // 需要认证的路由
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     if (!token || !await verifyToken(token, env)) {
@@ -60,10 +64,6 @@ export async function onRequest(context) {
     
     if (path === '/entertainment/delete' && request.method === 'POST') {
       return await deleteExpense(request, env, corsHeaders);
-    }
-    
-    if (path === '/rates/update' && request.method === 'GET') {
-      return await updateExchangeRates(env, corsHeaders);
     }
 
     return jsonResponse({ error: 'Not found' }, 404, corsHeaders);
