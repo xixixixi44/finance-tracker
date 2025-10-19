@@ -234,7 +234,7 @@
             const response = await fetch(API_URL + endpoint, { ...options, headers });
             if (response.status === 401) { // Unauthorized
                 document.getElementById('logoutBtn').click();
-                return;
+                return Promise.reject(new Error('Unauthorized')); // Prevent further execution
             }
             if (!response.ok) {
                 throw new Error(`API request failed with status ${response.status}`);
@@ -302,6 +302,7 @@
             const btn = e.currentTarget;
             btn.classList.add('loading');
             try {
+                // Use a direct fetch as this is a public endpoint and we want to refresh data after
                 await fetch(API_URL + '/rates/update');
                 await loadData();
             } catch (error) {
@@ -331,18 +332,11 @@
         });
 
         document.getElementById('exportBtn').addEventListener('click', function() {
-            let csvContent = '储蓄记录
-日期,金额(USD),记录时汇率(CAD),记录时汇率(CNY)
-';
-            currentData.savings.records.forEach(r => { csvContent += `${r.date},${r.amount},${r.rate_cad || ''},${r.rate_cny || ''}
-`; });
-            csvContent += '
-娱乐消费记录
-日期,金额,货币,备注,记录时汇率(CAD),记录时汇率(CNY)
-';
-            currentData.entertainment.records.forEach(r => { csvContent += `${r.date},${r.amount},${r.currency},"${r.note || ''}",${r.rate_cad || ''},${r.rate_cny || ''}
-`; });
-            const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            let csvContent = '储蓄记录\n日期,金额(USD),记录时汇率(CAD),记录时汇率(CNY)\n';
+            currentData.savings.records.forEach(r => { csvContent += `${r.date},${r.amount},${r.rate_cad || ''},${r.rate_cny || ''}\n`; });
+            csvContent += '\n娱乐消费记录\n日期,金额,货币,备注,记录时汇率(CAD),记录时汇率(CNY)\n';
+            currentData.entertainment.records.forEach(r => { csvContent += `${r.date},${r.amount},${r.currency},"${r.note || ''}",${r.rate_cad || ''},${r.rate_cny || ''}\n`; });
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = 'HorizonPlan_Export_' + new Date().toISOString().split('T')[0] + '.csv';
