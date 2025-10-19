@@ -381,32 +381,40 @@
         });
 
         // 删除储蓄记录
-        function deleteSavingRecord(id) {
+        async function deleteSavingRecord(id) {
             if (!confirm('确定要删除这条记录吗？')) return;
             
-            const record = currentData.savings.records.find(function(r) { return r.id === id; });
-            if (record) {
-                currentData.savings.current -= record.amount;
-                currentData.savings.records = currentData.savings.records.filter(function(r) { return r.id !== id; });
-                updateUI();
+            try {
+                await fetch(API_URL + '/savings/delete', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                await loadData(); // Reload data from backend
+            } catch (error) {
+                console.error('Delete saving error:', error);
             }
         }
 
         // 删除娱乐记录
-        function deleteExpenseRecord(id) {
+        async function deleteExpenseRecord(id) {
             if (!confirm('确定要删除这条记录吗？')) return;
             
-            const record = currentData.entertainment.records.find(function(r) { return r.id === id; });
-            if (record) {
-                if (record.amount > 0) {
-                    currentData.entertainment.balance -= record.amount;
-                } else {
-                    const rate = record.currency === 'USD' ? 1 : (record.rate_cad && record.currency === 'CAD' ? record.rate_cad : record.rate_cny);
-                    const usdAmount = Math.abs(record.amount) / rate;
-                    currentData.entertainment.balance += usdAmount;
-                }
-                currentData.entertainment.records = currentData.entertainment.records.filter(function(r) { return r.id !== id; });
-                updateUI();
+            try {
+                await fetch(API_URL + '/entertainment/delete', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                await loadData(); // Reload data from backend
+            } catch (error) {
+                console.error('Delete expense error:', error);
             }
         }
 
